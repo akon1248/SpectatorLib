@@ -20,7 +20,6 @@ repositories {
 
 dependencies {
 	compileOnly(spigot("1.16.5"))
-	compileOnly("org.jetbrains", "annotations", "22.0.0")
 	compileOnly(protocolLib())
 }
 
