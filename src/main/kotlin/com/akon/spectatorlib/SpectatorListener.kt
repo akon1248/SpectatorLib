@@ -76,7 +76,7 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 				packet.float.write(0, 2.0F)
 			}
 			//バニラのスペクテイターモードの時は見えないように
-			Server.NAMED_ENTITY_SPAWN -> packet.getEntityModifier(event)?.let {
+			Server.NAMED_ENTITY_SPAWN -> packet.getEntityModifier(event).read(0)?.let {
 				if (it is Player && this.manager.isSpectator(it) && !this.manager.isSpectator(player)) event.isCancelled = true
 			}
 			Server.PLAYER_INFO -> {
