@@ -17,7 +17,6 @@ import org.bukkit.event.HandlerList
 import org.bukkit.event.Listener
 import org.bukkit.event.player.PlayerGameModeChangeEvent
 import org.bukkit.event.server.PluginDisableEvent
-import kotlin.streams.toList
 
 class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(manager.plugin,
 	Server.GAME_STATE_CHANGE,
@@ -47,13 +46,22 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-	fun onGameModeChange(event: PlayerGameModeChangeEvent) = event.player.let {
-		if (this.manager.isSpectator(it)) this.manager.setSpectator(it, false)
+	fun onGameModeChange(event: PlayerGameModeChangeEvent) = event.player.let { player ->
+		if (this.manager.isSpectator(player)) {
+			val prevent = player.getMetadata("PreventDisablingSpectator").find {
+				it.owningPlugin == this.plugin
+			}?.asBoolean() == true
+			if (prevent) {
+				player.removeMetadata("PreventDisablingSpectator", this.plugin)
+				return
+			}
+			this.manager.setSpectator(player, false)
+		}
 	}
 
 	@EventHandler
 	fun onDisable(event: PluginDisableEvent) {
-		if (event.plugin == this.manager.plugin) {
+		if (event.plugin == this.plugin) {
 			HandlerList.getHandlerLists().forEach { it.unregister(this) }
 			ProtocolLibrary.getProtocolManager().removePacketListener(this)
 		}
@@ -75,7 +83,7 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 				//プレイヤーリストのゲームモードの偽装
 				//これを行わないとブロックをすり抜けられる
 				val modifier = packet.playerInfoDataLists
-				modifier.write(0, modifier.read(0).stream()
+				modifier.write(0, modifier.read(0).asSequence()
 					.map {
 						if (Bukkit.getPlayer(it.profile.id)?.let(this.manager::isSpectator) == true) {
 							PlayerInfoData(it.profile, it.latency, EnumWrappers.NativeGameMode.ADVENTURE, it.displayName)

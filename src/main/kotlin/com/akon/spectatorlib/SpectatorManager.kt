@@ -5,6 +5,7 @@ import org.bukkit.Bukkit
 import org.bukkit.GameMode
 import org.bukkit.NamespacedKey
 import org.bukkit.entity.Player
+import org.bukkit.metadata.FixedMetadataValue
 import org.bukkit.persistence.PersistentDataType
 import org.bukkit.plugin.Plugin
 
@@ -34,6 +35,7 @@ class SpectatorManager(val plugin: Plugin) {
 			val mode = player.gameMode
 			//ここで先にPersistentDataを書き換えることでゲームモードを変更してもパケット介入でアドベンチャーモードに見える
 			dataContainer.set(this.spectatorKey, PersistentDataType.INTEGER, mode.value)
+			player.setMetadata("PreventDisablingSpectator", FixedMetadataValue(this.plugin, true))
 			player.gameMode = GameMode.SPECTATOR
 			player.isInvulnerable = true
 			player.isInvisible = true
@@ -45,7 +47,6 @@ class SpectatorManager(val plugin: Plugin) {
 			player.isInvisible = false
 			dataContainer.remove(this.spectatorKey)
 			player.gameMode = previousMode!!
-
 		}
 		return true
 	}
