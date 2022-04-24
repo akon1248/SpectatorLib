@@ -46,7 +46,8 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-	fun onGameModeChange(event: PlayerGameModeChangeEvent) = event.player.let { player ->
+	fun onGameModeChange(event: PlayerGameModeChangeEvent) {
+		val player = event.player
 		if (this.manager.isSpectator(player)) {
 			val prevent = player.getMetadata("PreventDisablingSpectator").find {
 				it.owningPlugin == this.plugin
