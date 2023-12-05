@@ -51,7 +51,7 @@ class SpectatorManager(val plugin: Plugin) {
 		return true
 	}
 
-	private fun getPreviousMode(player: Player) = player.persistentDataContainer.get(this.spectatorKey, PersistentDataType.INTEGER)?.let(GameMode::getByValue)
+	internal fun getPreviousMode(player: Player) = player.persistentDataContainer.get(this.spectatorKey, PersistentDataType.INTEGER)?.let(GameMode::getByValue)
 
 	/**
 	 * プレイヤーがスペクテイター状態かどうかを確認します

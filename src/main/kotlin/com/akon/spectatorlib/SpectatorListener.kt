@@ -20,8 +20,10 @@ import org.bukkit.event.server.PluginDisableEvent
 
 class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(manager.plugin,
 	Server.GAME_STATE_CHANGE,
+	Server.LOGIN,
 	Server.NAMED_ENTITY_SPAWN,
-	Server.PLAYER_INFO
+	Server.PLAYER_INFO,
+	Server.RESPAWN
 ), Listener {
 
 	companion object {
@@ -75,6 +77,13 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 			//ゲームモードの偽装
 			Server.GAME_STATE_CHANGE -> if (this.manager.isSpectator(player) && getGameStateId(packet) == 3) {
 				packet.float.write(0, 2.0F)
+			}
+			Server.LOGIN, Server.RESPAWN -> if (this.manager.isSpectator(player)) {
+				val modifier = packet.gameModes
+				modifier.write(0, EnumWrappers.NativeGameMode.ADVENTURE)
+				if (MinecraftVersion.NETHER_UPDATE.atOrAbove()) {
+					modifier.write(1, EnumWrappers.NativeGameMode.fromBukkit(this.manager.getPreviousMode(player)))
+				}
 			}
 			//バニラのスペクテイターモードの時は見えないように
 			Server.NAMED_ENTITY_SPAWN -> packet.getEntityModifier(event).read(0)?.let {
