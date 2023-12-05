@@ -40,7 +40,7 @@ class SpectatorManager(val plugin: Plugin) {
 			player.isInvulnerable = true
 			player.isInvisible = true
 			player.allowFlight = true
-			player.teleport(player.location.add(0.0, 0.01, 0.0))
+			if (player.isOnGround) player.teleport(player.location.add(0.0, 0.01, 0.0))
 			player.isFlying = true
 		} else {
 			player.isInvulnerable = false

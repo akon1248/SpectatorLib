@@ -5,8 +5,8 @@ import com.comphenix.protocol.ProtocolLibrary
 import com.comphenix.protocol.events.PacketAdapter
 import com.comphenix.protocol.events.PacketContainer
 import com.comphenix.protocol.events.PacketEvent
-import com.comphenix.protocol.reflect.FieldAccessException
 import com.comphenix.protocol.reflect.FuzzyReflection
+import com.comphenix.protocol.utility.MinecraftVersion
 import com.comphenix.protocol.wrappers.EnumWrappers
 import com.comphenix.protocol.wrappers.PlayerInfoData
 import org.bukkit.Bukkit
@@ -30,19 +30,19 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 		//lazyで使われない場合の初期化を防ぐ
 		private val GAME_STATE_TYPE_CLASS by lazy { Server.GAME_STATE_CHANGE.packetClass.classes[0] }
 		private val GAME_STATE_ID_FIELD by lazy {
-			FuzzyReflection.fromClass(GAME_STATE_TYPE_CLASS).getFieldByType("id", Int::class.javaPrimitiveType)
+			FuzzyReflection.fromClass(GAME_STATE_TYPE_CLASS, true)
+				.getFieldByType("id", Int::class.javaPrimitiveType)
+				.apply { isAccessible = true }
 		}
 
 		private fun getGameStateId(gameStatePacket: PacketContainer): Int {
 			require(gameStatePacket.type == Server.GAME_STATE_CHANGE)
-			return try {
-				//1.15以下
-				gameStatePacket.integers.read(0)
-			} catch (ignored: FieldAccessException) {
+			return if (MinecraftVersion.BEE_UPDATE.atOrAbove()) {
 				GAME_STATE_ID_FIELD.get(gameStatePacket.getSpecificModifier(GAME_STATE_TYPE_CLASS).read(0)) as Int
+			} else {
+				gameStatePacket.integers.read(0)
 			}
 		}
-
 	}
 
 	@EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
@@ -84,13 +84,16 @@ class SpectatorListener(private val manager: SpectatorManager): PacketAdapter(ma
 				//プレイヤーリストのゲームモードの偽装
 				//これを行わないとブロックをすり抜けられる
 				val modifier = packet.playerInfoDataLists
-				modifier.write(0, modifier.read(0).asSequence()
+				val index = if (MinecraftVersion.FEATURE_PREVIEW_UPDATE.atOrAbove()) 1 else 0
+				modifier.write(index, modifier.read(index)
 					.map {
-						if (Bukkit.getPlayer(it.profile.id)?.let(this.manager::isSpectator) == true) {
-							PlayerInfoData(it.profile, it.latency, EnumWrappers.NativeGameMode.ADVENTURE, it.displayName)
+						if (Bukkit.getPlayer(it.profile.uuid)?.let(this.manager::isSpectator) == true)
+							if (MinecraftVersion.FEATURE_PREVIEW_UPDATE.atOrAbove()) {
+								PlayerInfoData(it.profileId, it.latency, it.isListed, EnumWrappers.NativeGameMode.ADVENTURE, it.profile, it.displayName, it.remoteChatSessionData)
+							} else {
+								PlayerInfoData(it.profile, it.latency, EnumWrappers.NativeGameMode.ADVENTURE, it.displayName, it.profileKeyData)
 						} else it
 					}
-					.toList()
 				)
 			}
 		}
